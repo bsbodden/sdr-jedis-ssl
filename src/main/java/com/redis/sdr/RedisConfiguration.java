@@ -32,6 +32,10 @@ class RedisConfiguration {
   @Value("${spring.redis.ssl:false}")
   private boolean sslEnabled;
 
+
+  @Value("${spring.redis.tls.version:TLS}")
+  private String tlsVersion;
+
   @Bean
   public JedisConnectionFactory redisConnectionFactory() throws IOException, GeneralSecurityException {
     RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
@@ -57,7 +61,7 @@ class RedisConfiguration {
       kmf.init(eks.keyStore(), eks.password().toCharArray());
 
 
-      SSLContext sc = SSLContext.getInstance("TLS");
+      SSLContext sc = SSLContext.getInstance(tlsVersion);
       sc.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
 
       JedisPoolConfig poolConfig = new JedisPoolConfig();
