@@ -39,6 +39,7 @@ Now set your environment variables thusly:
 $ export KEYSTORE_KEY="$(cat server.key)"
 $ export KEYSTORE_CERT="$(cat server.crt)"
 $ export KEYSTORE_PASSWORD="password"
+$ export TRUSTED_CERT="$(cat ca.crt)
 ```
 
 Set environment variables in your application:
