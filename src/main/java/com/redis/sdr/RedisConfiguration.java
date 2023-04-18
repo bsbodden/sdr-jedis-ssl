@@ -9,9 +9,7 @@ import org.springframework.data.redis.connection.jedis.JedisClientConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import redis.clients.jedis.JedisPoolConfig;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.*;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
@@ -45,27 +43,28 @@ class RedisConfiguration {
         JedisClientConfiguration.builder();
 
     if (sslEnabled) {
-      EnvKeyStore eks = EnvKeyStore.create("KEYSTORE_KEY", "KEYSTORE_CERT", "KEYSTORE_PASSWORD");
-      KeyStore trustStore = eks.keyStore();
 
-      TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-      trustManagerFactory.init(trustStore);
-
+      //create trust store neeeded to verify
+      KeyStore trustStore = EnvKeyStore.createWithRandomPassword("TRUSTED_CERT").keyStore();
       String tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
       TrustManagerFactory tmf = TrustManagerFactory.getInstance(tmfAlgorithm);
       tmf.init(trustStore);
 
-      SSLContext sc = SSLContext.getInstance("TLSv1.2");
-      sc.init(null, tmf.getTrustManagers(), new SecureRandom());
+
+      //create keystore only needed for mtls
+      EnvKeyStore eks = EnvKeyStore.create("KEYSTORE_KEY", "KEYSTORE_CERT", "KEYSTORE_PASSWORD");
+      KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+      kmf.init(eks.keyStore(), eks.password().toCharArray());
+
+
+      SSLContext sc = SSLContext.getInstance("TLS");
+      sc.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
 
       JedisPoolConfig poolConfig = new JedisPoolConfig();
 
       jedisClientConfigurationBuilder //
           .useSsl() //
-          .hostnameVerifier(HttpsURLConnection.getDefaultHostnameVerifier()) //
           .sslSocketFactory(sc.getSocketFactory()).and() //
-          .connectTimeout(Duration.of(10, ChronoUnit.MINUTES)) //
-          .readTimeout(Duration.of(5, ChronoUnit.DAYS)) //
           .usePooling() //
           .poolConfig(poolConfig);
     }
